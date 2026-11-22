@@ -25,19 +25,22 @@ function run(p: Uint8Array, inp: Uint8Array): { out: Uint8Array; code: number } 
     steps++;
     const nx = pc + 1 + imm;
     pc = nx;
-    // Stack needs: pops and pushes per opcode. Underflow (2) and overflow (3)
-    // are checked before the instruction's own traps and effect.
+    // Stack needs: pops (pp) and pushes (ps) per opcode. Underflow (trap 2)
+    // and overflow (trap 3) are checked before the instruction's own traps
+    // and effect. Binary ops are bytes 16-22, 24-26, 28-30, 32-34 (NEG=23
+    // and NOT=27 are unary, not binary); op 31 is no opcode at all.
+    const bin = op >= 16 && op <= 34 && op !== 23 && op !== 27;
     const pp = (op === 3 || op === 49 || op === 50 || op === 80 || op === 81 || op === 83) ? 1
       : (op === 4 || op === 23 || op === 27 || op === 64) ? 1
       : (op === 5 || op === 6 || op === 65) ? 2
       : (op === 7) ? 3
-      : (op >= 16 && op <= 34 && op !== 23 && op !== 27) ? 2 : 0;
+      : bin ? 2 : 0;
     const ps = (op === 1 || op === 2 || op === 82) ? 1
       : (op === 4) ? 2
       : (op === 6) ? 3
       : (op === 5 || op === 7) ? (op === 5 ? 2 : 3)
       : (op === 23 || op === 27 || op === 64) ? 1
-      : (op >= 16 && op <= 34 && op !== 23 && op !== 27) ? 1 : 0;
+      : bin ? 1 : 0;
     if (sp < pp) return done(2);
     if (sp - pp + ps > 256) return done(3);
     switch (op) {
